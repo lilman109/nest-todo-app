@@ -57,7 +57,7 @@ export class TodosService {
     if (todoIndex === -1) {
       throw new NotFoundException(`Todo with id ${id} not found`);
     }
-    const removedTodo = this.todos.splice(todoIndex, 1);
+    this.todos.splice(todoIndex, 1);
 
     return {message: `Todo with id ${id} removed successfully`
     }

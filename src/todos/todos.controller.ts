@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, ValidationPipe } from '@nestjs/common';
 import { TodosService } from './todos.service';
-import { CreateTodoDto } from './dto/create-todo.dto';
+import { CreateTodoDto, Priority } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 
 @Controller('todos')
@@ -8,27 +8,44 @@ export class TodosController {
   constructor(private readonly todosService: TodosService) {}
 
   @Post()
-  create(@Body() createTodoDto: CreateTodoDto) {
+  create(@Body(ValidationPipe) createTodoDto: CreateTodoDto) {
     return this.todosService.create(createTodoDto);
   }
 
   @Get()
-  findAll() {
+  findAll(@Query("status")status?: string, @Query("priority")priority?: Priority) {
+    if (status === "completed") {
+      return this.todosService.findByStatus(true);
+    }
+
+    if (status === "pending") {
+      return this.todosService.findByStatus(false);
+    }
+    
+    if (priority && ['low', 'medium', 'high'].includes(priority)) {
+      return this.todosService.findByPriority(priority);
+    }
+
     return this.todosService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
+  @Get('stats')
+  getStats() {
+    return this.todosService.getByStats();
+  }
+
+  @Get(":id")
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.todosService.findOne(+id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTodoDto: UpdateTodoDto) {
+  update(@Param('id', ParseIntPipe) id: number, @Body(ValidationPipe) updateTodoDto: UpdateTodoDto) {
     return this.todosService.update(+id, updateTodoDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseIntPipe) id: number) {
     return this.todosService.remove(+id);
   }
 }
