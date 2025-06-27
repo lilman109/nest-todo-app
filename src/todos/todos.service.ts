@@ -2,32 +2,38 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { Todo } from './entities/todo.entity';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TodosService {
-  private todos: Todo[] = [];
-  private currentId = 1;
+  constructor(
+    private prismaService: PrismaService
+  ) {}
 
-  create(createTodoDto: CreateTodoDto): Todo {
-    const todo = new Todo({
-      id: this.currentId++,
-      title: createTodoDto.title,
-      description: createTodoDto.description,
-      priority: createTodoDto.priority || 'medium',
-      dueDate: createTodoDto.dueDate ? new Date(createTodoDto.dueDate) : undefined
+  async create(createTodoDto: CreateTodoDto): Promise<Todo> {
+    const todo = await this.prismaService.todo.create({
+      data: {
+        title: createTodoDto.title,
+        description: createTodoDto.description,
+        dueDate: createTodoDto.dueDate ? new Date(createTodoDto.dueDate) : null,
+        priority: createTodoDto.priority || "MEDIUM",
+      },
     });
-
-    this.todos.push(todo);
     return todo;
-
   }
 
-  findAll(): Todo[] {
-    return this.todos;
+  async findAll(): Promise<Todo[]> {
+    return await this.prismaService.todo.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
   }
 
-  findOne(id: number): Todo {
-    const todo =  this.todos.find(todo => todo.id === id)
+  async findOne(id: number): Promise<Todo> {
+    const todo = await this.prismaService.todo.findUnique({
+      where: { id },
+    }); 
 
     if (!todo) {
       throw new NotFoundException(`Todo with id ${id} not found`);
@@ -36,45 +42,58 @@ export class TodosService {
     return todo;
   }
 
-  update(id: number, updateTodoDto: UpdateTodoDto): Todo {
-    const todoIndex = this.todos.findIndex(todo => todo.id === id);
-    if (todoIndex === -1) {
+  async update(id: number, updateTodoDto: UpdateTodoDto): Promise<Todo> {
+    try {
+      const updatedTodo = await this.prismaService.todo.update({
+        where: { id },
+        data: {
+          ...updateTodoDto,
+          dueDate: updateTodoDto.dueDate ? new Date(updateTodoDto.dueDate) : undefined,
+        },
+      });
+      return updatedTodo;
+    } catch (error) {
       throw new NotFoundException(`Todo with id ${id} not found`);
     }
-    const existingTodo = this.todos[todoIndex];
-    const updatedTodo = {
-      ...existingTodo,
-      ...updateTodoDto,
-      dueDate: updateTodoDto.dueDate ? new Date(updateTodoDto.dueDate) : existingTodo.dueDate,
-      updatedAt: new Date()
-    };
-    this.todos[todoIndex] = updatedTodo;
-    return updatedTodo;
   }
 
-  remove(id: number) {
-    const todoIndex = this.todos.findIndex(todo => todo.id === id);
-    if (todoIndex === -1) {
+  async remove(id: number) {
+    try {
+      const deletedTodo = await this.prismaService.todo.delete({
+        where: { id },
+      });
+      return deletedTodo;
+    } catch (error) {
       throw new NotFoundException(`Todo with id ${id} not found`);
     }
-    this.todos.splice(todoIndex, 1);
-
-    return {message: `Todo with id ${id} removed successfully`
-    }
   }
 
-  findByStatus(completed: boolean): Todo[] {
-    return this.todos.filter(todo => todo.completed === completed);
+  async findByStatus(completed: boolean): Promise<Todo[]> {
+    return await this.prismaService.todo.findMany({
+      where: { completed },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
-  findByPriority(priority: 'low' | 'medium' | 'high'): Todo[] {
-    return this.todos.filter(todo => todo.priority === priority);
+  async findByPriority(priority: 'LOW' | 'MEDIUM' | 'HIGH'): Promise<Todo[]> {
+    return await this.prismaService.todo.findMany({
+      where: { priority },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
-  getByStats(): { total: number; completed: number; pending: number } {
-    const total = this.todos.length;
-    const completed = this.todos.filter(todo => todo.completed).length;
-    const pending = total - completed;
+  async getByStats(): Promise<{ total: number; completed: number; pending: number }> {
+    const total = await this.prismaService.todo.count();
+    const completed = await this.prismaService.todo.count({
+      where: { completed: true },
+    });
+    const pending = await this.prismaService.todo.count({
+      where: { completed: false },
+    });
 
     return { total, completed, pending };
   }

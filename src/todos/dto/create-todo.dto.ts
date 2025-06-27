@@ -1,9 +1,9 @@
 import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
 
 export enum Priority {
-    Low = 'low',
-    Medium = 'medium',
-    High = 'high',
+    Low = 'LOW',
+    Medium = 'MEDIUM',
+    High = 'HIGH',
 }
 
 export class CreateTodoDto {
