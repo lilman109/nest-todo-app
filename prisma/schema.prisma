@@ -7,6 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Userは複数のTodoを持つ（1対多の関係）
+  todos     Todo[]
+}
+
 model Todo {
   id          Int       @id @default(autoincrement())
   title       String    @db.VarChar(100)
@@ -17,10 +29,14 @@ model Todo {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@index([completed])
-  @@index([priority])
-  @@index([createdAt])
-  @@map("todos")
+  // 各TodoはUserに属する
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([completed])  // 完了状態でインデックスを作成
+  @@index([priority])   // 優先度でインデックスを作成
+  @@index([createdAt]) // 作成日時でインデックスを作成
+  @@map("todos")        // テーブル名を明示的に指定
 }
 
 enum Priority {
