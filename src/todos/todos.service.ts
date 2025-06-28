@@ -10,29 +10,34 @@ export class TodosService {
     private prismaService: PrismaService
   ) {}
 
-  async create(createTodoDto: CreateTodoDto): Promise<Todo> {
+  async create({ createTodoDto, userId }: { createTodoDto: CreateTodoDto; userId: number }): Promise<Todo> {
     const todo = await this.prismaService.todo.create({
       data: {
         title: createTodoDto.title,
         description: createTodoDto.description,
         dueDate: createTodoDto.dueDate ? new Date(createTodoDto.dueDate) : null,
         priority: createTodoDto.priority || "MEDIUM",
+        userId: userId,
       },
     });
     return todo;
   }
 
-  async findAll(): Promise<Todo[]> {
+  async findAll({ userId }: { userId: number }): Promise<Todo[]> {
     return await this.prismaService.todo.findMany({
+      where: { userId },
       orderBy: {
         createdAt: 'desc',
       },
     })
   }
 
-  async findOne(id: number): Promise<Todo> {
+  async findOne({ id, userId }: { id: number; userId: number }): Promise<Todo> {
     const todo = await this.prismaService.todo.findUnique({
-      where: { id },
+      where: {
+        userId,
+        id
+      }
     }); 
 
     if (!todo) {
@@ -42,10 +47,10 @@ export class TodosService {
     return todo;
   }
 
-  async update(id: number, updateTodoDto: UpdateTodoDto): Promise<Todo> {
+  async update({ id, updateTodoDto, userId }: { id: number; updateTodoDto: UpdateTodoDto; userId: number }): Promise<Todo> {
     try {
       const updatedTodo = await this.prismaService.todo.update({
-        where: { id },
+        where: { id, userId },
         data: {
           ...updateTodoDto,
           dueDate: updateTodoDto.dueDate ? new Date(updateTodoDto.dueDate) : undefined,
@@ -57,10 +62,10 @@ export class TodosService {
     }
   }
 
-  async remove(id: number) {
+  async remove({ id, userId }: { id: number; userId: number }): Promise<Todo> {
     try {
       const deletedTodo = await this.prismaService.todo.delete({
-        where: { id },
+        where: { id, userId },
       });
       return deletedTodo;
     } catch (error) {
@@ -68,28 +73,28 @@ export class TodosService {
     }
   }
 
-  async findByStatus(completed: boolean): Promise<Todo[]> {
+  async findByStatus({ completed, userId }: { completed: boolean; userId: number }): Promise<Todo[]> {
     return await this.prismaService.todo.findMany({
-      where: { completed },
+      where: { completed, userId },
       orderBy: {
         createdAt: 'desc',
       },
     });
   }
 
-  async findByPriority(priority: 'LOW' | 'MEDIUM' | 'HIGH'): Promise<Todo[]> {
+  async findByPriority({ priority, userId }: { priority: 'LOW' | 'MEDIUM' | 'HIGH'; userId: number }): Promise<Todo[]> {
     return await this.prismaService.todo.findMany({
-      where: { priority },
+      where: { priority, userId },
       orderBy: {
         createdAt: 'desc',
       },
     });
   }
 
-  async getByStats(): Promise<{ total: number; completed: number; pending: number }> {
+  async getByStats({ userId }: { userId: number }): Promise<{ total: number; completed: number; pending: number }> {
     const total = await this.prismaService.todo.count();
     const completed = await this.prismaService.todo.count({
-      where: { completed: true },
+      where: { completed: true, userId },
     });
     const pending = await this.prismaService.todo.count({
       where: { completed: false },
