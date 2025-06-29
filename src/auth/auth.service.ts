@@ -29,6 +29,7 @@ export class AuthService {
             data: {
                 email: registerDto.email,
                 password: hashedPassword,
+                name: registerDto.name,
             },
         });
 
