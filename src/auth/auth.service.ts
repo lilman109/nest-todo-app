@@ -33,7 +33,7 @@ export class AuthService {
         });
 
         const payload = { email: newUser.email, sub: newUser.id };
-        const access_token = this.jwtService.sign(payload);
+        const access_token = this.jwtService.sign(payload); // JWTトークンを生成
         return {
             access_token,
             user: {
