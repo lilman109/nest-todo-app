@@ -33,10 +33,10 @@ export class TodosService {
   }
 
   async findOne({ id, userId }: { id: number; userId: number }): Promise<Todo> {
-    const todo = await this.prismaService.todo.findUnique({
+    const todo = await this.prismaService.todo.findFirst({
       where: {
-        userId,
-        id
+        id,
+        userId
       }
     }); 
 
@@ -48,29 +48,39 @@ export class TodosService {
   }
 
   async update({ id, updateTodoDto, userId }: { id: number; updateTodoDto: UpdateTodoDto; userId: number }): Promise<Todo> {
-    try {
-      const updatedTodo = await this.prismaService.todo.update({
-        where: { id, userId },
-        data: {
-          ...updateTodoDto,
-          dueDate: updateTodoDto.dueDate ? new Date(updateTodoDto.dueDate) : undefined,
-        },
-      });
-      return updatedTodo;
-    } catch (error) {
+    // First check if the todo exists and belongs to the user
+    const existingTodo = await this.prismaService.todo.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existingTodo) {
       throw new NotFoundException(`Todo with id ${id} not found`);
     }
+
+    const updatedTodo = await this.prismaService.todo.update({
+      where: { id },
+      data: {
+        ...updateTodoDto,
+        dueDate: updateTodoDto.dueDate ? new Date(updateTodoDto.dueDate) : undefined,
+      },
+    });
+    return updatedTodo;
   }
 
   async remove({ id, userId }: { id: number; userId: number }): Promise<Todo> {
-    try {
-      const deletedTodo = await this.prismaService.todo.delete({
-        where: { id, userId },
-      });
-      return deletedTodo;
-    } catch (error) {
+    // First check if the todo exists and belongs to the user
+    const existingTodo = await this.prismaService.todo.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existingTodo) {
       throw new NotFoundException(`Todo with id ${id} not found`);
     }
+
+    const deletedTodo = await this.prismaService.todo.delete({
+      where: { id },
+    });
+    return deletedTodo;
   }
 
   async findByStatus({ completed, userId }: { completed: boolean; userId: number }): Promise<Todo[]> {
@@ -92,12 +102,14 @@ export class TodosService {
   }
 
   async getByStats({ userId }: { userId: number }): Promise<{ total: number; completed: number; pending: number }> {
-    const total = await this.prismaService.todo.count();
+    const total = await this.prismaService.todo.count({
+      where: { userId },
+    });
     const completed = await this.prismaService.todo.count({
       where: { completed: true, userId },
     });
     const pending = await this.prismaService.todo.count({
-      where: { completed: false },
+      where: { completed: false, userId },
     });
 
     return { total, completed, pending };
