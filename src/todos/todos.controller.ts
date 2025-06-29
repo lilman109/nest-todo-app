@@ -26,7 +26,7 @@ export class TodosController {
       return this.todosService.findByStatus({completed: false, userId: user.id});
     }
     
-    if (priority && ['low', 'medium', 'high'].includes(priority)) {
+    if (priority && ['LOW', 'MEDIUM', 'HIGH'].includes(priority)) {
       return this.todosService.findByPriority({priority, userId: user.id});
     }
 
